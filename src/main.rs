@@ -17,6 +17,7 @@ impl Component for Outer {
     }
 
     fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        // comment out this to show behavior when the amount of divs doesn't change
         self.count += 1;
         true
     }
@@ -58,6 +59,7 @@ impl Component for Inner {
         }
     }
 
+    // uncomment this to work around the issue
     // fn changed(&mut self, _ctx: &Context<Self>) -> bool {
     //     self.node_ref = NodeRef::default();
     //     true
