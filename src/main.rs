@@ -5,81 +5,51 @@ fn main() {
     yew::start_app::<Outer>();
 }
 
-struct Outer {
-    count: usize,
-}
-impl Component for Outer {
-    type Message = ();
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { count: 1 }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
-        // comment out this to show behavior when the amount of divs doesn't change
-        self.count += 1;
-        true
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        html! {
-            <Inner
-                div_count={self.count}
-                onclick={ctx.link().callback(|_| ())}
-                />
-        }
+#[function_component(Outer)]
+fn outer() -> Html {
+    let counter = use_state(|| 1usize);
+    let onclick = {
+        let counter = counter.clone();
+        Callback::from(move |_| counter.set(*counter + 1))
+    };
+    html! {
+        <Inner
+            div_count={*counter}
+            onclick={onclick}
+            />
     }
 }
 
-struct Inner {
-    node_ref: NodeRef,
-}
 #[derive(Properties, PartialEq)]
 struct InnerProps {
     div_count: usize,
     onclick: Callback<()>,
 }
-impl Component for Inner {
-    type Message = ();
-    type Properties = InnerProps;
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            node_ref: NodeRef::default(),
-        }
-    }
-
-    // Try to focus the input on every render.
-    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
-        // Watch console output to see that after each event, the NodeRef is reset.
-        console_dbg!(&self.node_ref);
-        if let Some(input) = self.node_ref.cast::<web_sys::HtmlInputElement>() {
+#[function_component(Inner)]
+fn inner(props: &InnerProps) -> Html {
+    let node_ref = use_state(NodeRef::default);
+    let node_ref_inner = node_ref.clone();
+    use_effect(move || {
+        console_dbg!(&node_ref_inner);
+        if let Some(input) = node_ref_inner.cast::<web_sys::HtmlInputElement>() {
             input.focus().unwrap();
         }
-    }
-
-    // uncomment this to work around the issue
-    // fn changed(&mut self, _ctx: &Context<Self>) -> bool {
-    //     self.node_ref = NodeRef::default();
-    //     true
-    // }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let divs = (0..ctx.props().div_count).map(|i| {
-            html! {
-                <div><h6>{ format!("DIV #{}", i) }</h6></div>
-            }
-        });
+        || ()
+    });
+    let divs = (0..props.div_count).map(|i| {
         html! {
-            <div>
-                <h6>{ "OUTER DIV" }</h6>
-                { for divs }
-                <input ref={self.node_ref.clone()} value="INPUT" />
-                <button onclick={ctx.props().onclick.reform(|_| ())}>
-                    { "CLICK ME" }
-                </button>
-            </div>
+            <div><h6>{ format!("DIV #{}", i) }</h6></div>
         }
+    });
+    html! {
+        <div>
+            <h6>{ "OUTER DIV" }</h6>
+            { for divs }
+            <input ref={NodeRef::clone(&node_ref)} value="INPUT" />
+            <button onclick={props.onclick.reform(|_| ())}>
+                { "CLICK ME" }
+            </button>
+        </div>
     }
 }
